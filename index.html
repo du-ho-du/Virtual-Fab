@@ -156,7 +156,7 @@ body.touch #prompt{bottom:auto;top:auto;left:auto;right:16px;bottom:40px;transfo
 </head>
 <body>
 <div id="view"></div>
-<div id="help">이동 <b>WASD</b> · 달리기 <b>Shift</b> · 점프 <b>Space</b> · 펀치 <b>좌클릭</b> · 장비 <b>E</b> · 동작 <b>U</b> · 채팅 <b>Enter</b></div>
+<div id="help">이동 <b>WASD</b> · 달리기 <b>Shift</b> · 점프 <b>Space</b> · 펀치 <b>좌클릭</b> · 장비 <b>E</b> · 동작 <b>U</b> · 채팅 <b>Enter</b> <span style="opacity:.6">v1118</span></div>
 <div id="lockHint">화면을 클릭하면 마우스로 시점을 돌릴 수 있음</div>
 <button id="emoBtn" type="button">😊<br>동작</button>
 <button id="jumpBtn" type="button">⤒<br>점프</button>
@@ -863,8 +863,9 @@ function makeAvatar(color, name, skinI=0, hairI=0){
   const tag = new THREE.Sprite(new THREE.SpriteMaterial({depthTest:false})); tag.position.y = 2.2; tag.renderOrder = 10; g.add(tag);
   const bubble = new THREE.Sprite(new THREE.SpriteMaterial({depthTest:false, transparent:true})); bubble.visible = false; bubble.renderOrder = 11; g.add(bubble);
   const icon = new THREE.Sprite(new THREE.SpriteMaterial({depthTest:false, transparent:true})); icon.visible = false; icon.renderOrder = 12; icon.position.y = 2.75; icon.scale.set(0.55,0.55,1); g.add(icon);
+  const swoosh = new THREE.Sprite(new THREE.SpriteMaterial({map: emojiTexture('👊'), depthTest:false, transparent:true})); swoosh.visible = false; swoosh.renderOrder = 14; g.add(swoosh);
   const pow = new THREE.Sprite(new THREE.SpriteMaterial({depthTest:false, transparent:true})); pow.visible = false; pow.renderOrder = 14; pow.scale.set(0.6,0.6,1); g.add(pow);
-  const av = {g, rig, stool, shield, shieldRing, shadow, pow, hips, upper, head, armR, armL, legR, legL, tag, bubble, icon, name:null, color, skinI, hairI, walkPh:0, emote:null, air:0, run:false, punch:null, react:null, inv:false};
+  const av = {g, rig, stool, swoosh, shield, shieldRing, shadow, pow, hips, upper, head, armR, armL, legR, legL, tag, bubble, icon, name:null, color, skinI, hairI, walkPh:0, emote:null, air:0, run:false, punch:null, react:null, inv:false};
   setTag(av, name, color);
   scene.add(g);
   return av;
@@ -995,13 +996,15 @@ function animateAvatar(av, x, z, ry, moving, t, dt){
   }
   if (av.punch) {
     const e = (now - av.punch.t0)/1000;
-    if (e > 0.34) av.punch = null;
+    if (e > 0.34) { av.punch = null; av.rig.position.z = 0; if (av.swoosh) av.swoosh.visible = false; }
     else {
       const f = e < 0.09 ? e/0.09 : Math.max(0, 1 - (e-0.09)/0.25);
       const P = av.punch.side ? A : B, G = av.punch.side ? B : A, sg = av.punch.side ? 1 : -1;
       P.sh.rotation.x = lerp(-0.9, -1.6, f); P.sh.rotation.z = sg*0.28; P.el.rotation.x = lerp(-1.5, -0.05, f); P.el.rotation.z = 0;
       G.sh.rotation.x = -0.9; G.sh.rotation.z = -sg*0.25; G.el.rotation.x = -1.7;
-      av.upper.rotation.y = -sg*0.4*f; av.upper.rotation.x += 0.08*f;
+      av.upper.rotation.y = -sg*0.75*f; av.upper.rotation.x += 0.12*f;
+      av.rig.position.z = 0.18*f;
+      if (av.swoosh) { av.swoosh.visible = e < 0.2; av.swoosh.position.set(sg*-0.15, 1.38, 0.75 + e*1.5); const sc = 0.35 + e*1.6; av.swoosh.scale.set(sc, sc, 1); av.swoosh.material.opacity = 1 - e/0.2; }
       R.hp.rotation.x *= 0.5; L.hp.rotation.x *= 0.5;
     }
   }
