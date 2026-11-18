@@ -122,8 +122,13 @@ body{height:100dvh}
 #emoteGrid button:hover{background:#f2f8ff;border-color:var(--blueS)}
 #emoteGrid .ic{font-size:20px;line-height:1}
 #emoteGrid kbd{font-family:'JetBrains Mono',monospace;font-size:11px;border:1px solid var(--charS);padding:0 4px;color:var(--sub)}
-#emoBtn{position:fixed;right:16px;bottom:110px;z-index:6;display:none;background:#fff;border:2px solid var(--blue);font:inherit;font-weight:700;font-size:15px;padding:11px 14px;color:#000}
-body.touch #emoBtn{display:block}
+#emoBtn,#punchBtn,#jumpBtn{position:fixed;right:16px;z-index:6;display:none;background:rgba(255,255,255,.92);border:2px solid var(--blue);font:inherit;font-weight:700;font-size:14px;width:68px;height:68px;border-radius:50%;color:#000;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;line-height:1.1}
+#punchBtn{bottom:112px;right:20px;width:76px;height:76px;font-size:15px}
+#jumpBtn{bottom:200px;right:24px}
+#emoBtn{bottom:280px;right:24px}
+body.touch #emoBtn,body.touch #punchBtn,body.touch #jumpBtn{display:block}
+#combo{position:fixed;left:50%;top:84px;transform:translateX(-50%);z-index:8;background:#fff;border:2.25px solid #D7191C;font-weight:900;font-size:18px;padding:6px 16px;display:none;pointer-events:none;white-space:nowrap}
+#combo.inv{border-color:#05B98A}
 body.touch #emoteGrid kbd{display:none}
 #lockHint{position:fixed;left:50%;top:44px;transform:translateX(-50%);z-index:5;background:rgba(255,255,255,.92);border:1.25px solid var(--blueS);font-size:12px;font-weight:700;padding:5px 12px;display:none;white-space:nowrap}
 body.touch #lockHint{display:none!important}
@@ -151,9 +156,12 @@ body.touch #prompt{bottom:auto;top:auto;left:auto;right:16px;bottom:40px;transfo
 </head>
 <body>
 <div id="view"></div>
-<div id="help">이동 <b>WASD</b> · 시점 <b>마우스 이동</b> · 줌 <b>휠</b> · 장비 <b>E</b> · 동작 <b>U</b> · 채팅 <b>Enter</b> · 커서 꺼내기 <b>Esc</b></div>
+<div id="help">이동 <b>WASD</b> · 달리기 <b>Shift</b> · 점프 <b>Space</b> · 펀치 <b>좌클릭</b> · 장비 <b>E</b> · 동작 <b>U</b> · 채팅 <b>Enter</b></div>
 <div id="lockHint">화면을 클릭하면 마우스로 시점을 돌릴 수 있음</div>
-<button id="emoBtn" type="button">😊 동작</button>
+<button id="emoBtn" type="button">😊<br>동작</button>
+<button id="jumpBtn" type="button">⤒<br>점프</button>
+<button id="punchBtn" type="button">👊<br>펀치</button>
+<div id="combo"></div>
 <div id="emotes"><h4>동작 고르기 <span style="font-weight:500">U 또는 Esc로 닫기</span></h4><div id="emoteGrid"></div></div>
 <div id="tabs"><button data-p="flow">공정</button><button data-p="people">접속자 <span id="tabCount">1</span></button><button data-p="chat">채팅 <span id="tabUnread"></span></button><button data-p="bag">보관함</button></div>
 
@@ -170,12 +178,11 @@ body.touch #prompt{bottom:auto;top:auto;left:auto;right:16px;bottom:40px;transfo
   <div class="pad">
     <p>3D Cleanroom 안에 장비 9대가 있음. 원하는 장비로 걸어가 조건을 정하면 Wafer 단면이 쌓이고 깎이는 모습이 그려지고, 마지막 Test 장비에서 수율이 정해진 칩이 완성됨.</p>
     <div class="namerow"><b>닉네임</b><input id="nameIn" maxlength="12" placeholder="Fab에서 보일 이름" autocomplete="off" enterkeyhint="done"></div>
-    <div class="sec">옷 색</div>
+    <div class="sec">방진복 포인트 색</div>
     <div class="swatches" id="swatches"></div>
     <div class="sec">피부색</div>
     <div class="swatches" id="skins"></div>
-    <div class="sec">머리색</div>
-    <div class="swatches" id="hairs"></div>
+    <div class="swatches" id="hairs" style="display:none"></div>
     <div class="sec">체험할 칩·소자</div>
     <div class="prods" id="prods"></div>
     <button class="btn" id="startBtn">Fab 입장</button>
@@ -208,8 +215,8 @@ const fmt = (v,d=0) => Number(v).toFixed(d);
 const isTouch = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
 if (isTouch) document.body.classList.add('touch');
 $('#keysTip').innerHTML = isTouch
-  ? '조작: 왼쪽 아래 조이스틱으로 이동 · 화면 드래그로 시점 회전 · 두 손가락으로 확대 · 장비 앞에서 파란 버튼 · 😊 버튼으로 손 흔들기·춤·하트 보내기'
-  : '조작: WASD 이동 · 마우스로 시점 회전 · 휠 줌 · 장비 앞에서 E · U 키로 손 흔들기·춤·하트 보내기 · Enter 채팅 · Esc 마우스 커서 꺼내기<br>Photo 구역은 노란 조명임. 감광액이 짧은 파장 빛에 반응하므로 실제 Fab도 이렇게 운영함.';
+  ? '조작: 조이스틱 이동, 끝까지 밀면 달리기 · 화면 드래그 시점 · 오른쪽 버튼으로 펀치·점프·동작 · 장비 앞 파란 버튼'
+  : '조작: WASD 이동 · Shift 달리기 · Space 점프 · 좌클릭 펀치 · 마우스 시점 · E 장비 · U 동작 · Enter 채팅<br>Photo 구역은 노란 조명임. 감광액이 짧은 파장 빛에 반응하므로 실제 Fab도 이렇게 운영함.';
 
 const PRODUCTS = {
   logic: { name:'Logic NMOS 칩', short:'Logic NMOS', desc:'스마트폰 AP 속 수십억 개 Transistor 중 하나. 얇은 Gate Oxide와 얕은 Junction이 핵심.',
@@ -372,7 +379,8 @@ let lastSent = 0, lastSig = '', lastChatAt = 0;
 function statePayload(){
   return { cid, n:me.name, c:me.color, x:+player.x.toFixed(2), z:+player.z.toFixed(2), r:+player.ry.toFixed(2),
     st:me.station, dc:doneCount(), pr:me.product, ch:me.chips.length, sk:me.skin, hr:me.hair,
-    em: (me.em && myAv && myAv.emote) ? me.em : '', eid: me.eid };
+    em: (me.em && myAv && myAv.emote) ? me.em : '', eid: me.eid,
+    jid: combat.jid, rn: player.running ? 1 : 0, inv: isInv() ? 1 : 0 };
 }
 function publish(sub, obj){
   if (!net || !net.connected) return;
@@ -436,6 +444,8 @@ function onState(d){
     p.eid = d.eid; const eg = clamp(+d.eg || 0, 0, 20000);
     if (eg < EMO[d.em].dur*1000 - 200) startEmote(p.av, d.em, eg);
   } else if (!d.em && p.av.emote) stopEmote(p.av);
+  if (typeof d.jid === 'number') { if (p.jid !== undefined && d.jid !== p.jid) p.av.jumpT0 = performance.now(); p.jid = d.jid; }
+  p.av.run = !!d.rn; p.av.inv = !!d.inv;
   setTag(p.av, name, color);
   p.d = d; p.seen = performance.now();
   p.tx = clamp(d.x,-RW,RW); p.tz = clamp(d.z,-RD,RD); p.tr = +d.r || 0;
@@ -449,6 +459,19 @@ function onChat(d){
   if (p) { setBubble(p.av, m); p.av.bubbleUntil = performance.now() + 7000; }
 }
 function onEvent(d){
+  if (d.k === 'punch') {
+    const p = peers.get(d.cid); if (!p) return;
+    p.av.punch = {t0: performance.now(), side: d.side ? 1 : 0};
+    if (isFinite(+d.r)) { p.tr = +d.r; p.r = +d.r; }
+    if (p.av.emote) stopEmote(p.av);
+    return;
+  }
+  if (d.k === 'hit' && typeof d.to === 'string') {
+    if (d.to === cid) { onHitMe(d); return; }
+    const p = peers.get(d.to);
+    if (p && !p.d.inv && !(p.av.react && performance.now() - p.av.react.t0 < 150)) { p.av.react = {t0: performance.now()}; showPow(p.av); }
+    return;
+  }
   if (d.k === 'chip') {
     const t = `${cleanName(d.n)} 님이 ${String(d.name||'칩').slice(0,20)} 칩을 완성함 · 등급 ${String(d.grade||'').slice(0,1)}`;
     toast(t); sysMsg(t);
@@ -774,7 +797,6 @@ const EMOTES = [
   {id:'dance', label:'춤추기',   icon:'💃', dur:6.0},
   {id:'heart', label:'하트 보내기', icon:'❤️', dur:2.6, keepMoving:true},
   {id:'clap',  label:'박수',     icon:'👏', dur:2.6},
-  {id:'jump',  label:'점프',     icon:'⬆️', dur:1.7, keepMoving:true},
   {id:'bow',   label:'인사',     icon:'🙇', dur:2.2},
   {id:'cheer', label:'만세',     icon:'🙌', dur:2.6},
   {id:'thumb', label:'엄지척',   icon:'👍', dur:2.4},
@@ -784,52 +806,65 @@ const EMO = Object.fromEntries(EMOTES.map(e => [e.id, e]));
 
 function limb(r, len, color){ return new THREE.Mesh(new THREE.CapsuleGeometry(r, len, 4, 10), mat(color, {roughness:.7})); }
 function makeAvatar(color, name, skinI=0, hairI=0){
-  const skinC = new THREE.Color(SKINS[skinI] || SKINS[0]), hairC = new THREE.Color(HAIRS[hairI] || HAIRS[0]);
-  const shirt = new THREE.Color(color), pants = 0x2D374A, shoeC = 0x1c1f26;
+  const skinC = new THREE.Color(SKINS[skinI] || SKINS[0]);
+  const accent = new THREE.Color(color), SUIT = 0xF4F6F9, GLOVE = 0x8FB2F0, SOLE = 0x7D8798;
   const g = new THREE.Group();
   const rig = new THREE.Group(); g.add(rig);
   const hips = new THREE.Group(); hips.position.y = 0.92; rig.add(hips);
-  const pelvis = new THREE.Mesh(new THREE.BoxGeometry(0.32,0.16,0.2), mat(pants)); hips.add(pelvis);
+  const pelvis = new THREE.Mesh(new THREE.BoxGeometry(0.34,0.17,0.22), mat(SUIT,{roughness:.85})); hips.add(pelvis);
+  const belt = new THREE.Mesh(new THREE.CylinderGeometry(0.19,0.19,0.06,20), mat(accent)); belt.scale.z = 0.7; belt.position.y = 0.07; hips.add(belt);
   const upper = new THREE.Group(); upper.position.y = 0.05; hips.add(upper);
-  const torso = limb(0.165, 0.2, shirt); torso.scale.set(1.18, 1, 0.72); torso.position.y = 0.26; upper.add(torso);
-  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.055,0.09,10), mat(skinC)); neck.position.y = 0.55; upper.add(neck);
+  const torso = limb(0.18, 0.2, SUIT); torso.scale.set(1.15, 1, 0.75); torso.position.y = 0.27; upper.add(torso);
+  const zip = new THREE.Mesh(new THREE.BoxGeometry(0.02,0.34,0.01), mat(0xB5BCC7)); zip.position.set(0,0.27,0.136); upper.add(zip);
+  const badge = new THREE.Mesh(new THREE.BoxGeometry(0.09,0.06,0.01), mat(accent)); badge.position.set(0.09,0.37,0.13); upper.add(badge);
+  const collar = new THREE.Mesh(new THREE.CylinderGeometry(0.11,0.15,0.1,16), mat(SUIT,{roughness:.85})); collar.position.y = 0.55; upper.add(collar);
   const head = new THREE.Group(); head.position.y = 0.6; upper.add(head);
-  const skull = new THREE.Mesh(new THREE.SphereGeometry(0.15, 22, 16), mat(skinC, {roughness:.6})); skull.scale.y = 1.08; skull.position.y = 0.13; head.add(skull);
-  const hair = new THREE.Mesh(new THREE.SphereGeometry(0.158, 22, 12, 0, Math.PI*2, 0, Math.PI*0.55), mat(hairC, {roughness:.9}));
-  hair.position.set(0, 0.15, -0.012); hair.rotation.x = -0.25; head.add(hair);
-  const back = new THREE.Mesh(new THREE.SphereGeometry(0.15, 16, 10), mat(hairC, {roughness:.9})); back.scale.set(1,0.8,0.6); back.position.set(0,0.12,-0.07); head.add(back);
-  const eyeM = mat(0x111111, {roughness:.3});
-  for (const sx of [-0.052, 0.052]) { const e = new THREE.Mesh(new THREE.SphereGeometry(0.02, 8, 8), eyeM); e.position.set(sx, 0.15, 0.137); e.scale.z = 0.5; head.add(e); }
-  const smile = new THREE.Mesh(new THREE.TorusGeometry(0.035, 0.008, 6, 14, Math.PI), mat(0x9a3b32)); smile.rotation.z = Math.PI; smile.position.set(0, 0.09, 0.143); head.add(smile);
-  for (const sx of [-0.15, 0.15]) { const ear = new THREE.Mesh(new THREE.SphereGeometry(0.03, 8, 8), mat(skinC)); ear.position.set(sx, 0.13, 0); head.add(ear); }
+  const skull = new THREE.Mesh(new THREE.SphereGeometry(0.148, 22, 16), mat(skinC, {roughness:.6})); skull.scale.y = 1.08; skull.position.y = 0.13; head.add(skull);
+  const hood = new THREE.Mesh(new THREE.SphereGeometry(0.175, 24, 16, Math.PI/2 + 0.62, Math.PI*2 - 1.24, 0, Math.PI*0.86), mat(SUIT, {roughness:.85, side:THREE.DoubleSide}));
+  hood.scale.y = 1.1; hood.position.y = 0.13; head.add(hood);
+  const hoodRim = new THREE.Mesh(new THREE.TorusGeometry(0.128, 0.018, 8, 24), mat(accent)); hoodRim.position.set(0, 0.13, 0.125); hoodRim.scale.y = 1.25; head.add(hoodRim);
+  const mask = new THREE.Mesh(new THREE.SphereGeometry(0.158, 18, 10, Math.PI/2 - 0.8, 1.6, Math.PI*0.5, Math.PI*0.33), mat(0xE8F1FB, {roughness:.9, side:THREE.DoubleSide}));
+  mask.scale.y = 1.08; mask.position.y = 0.13; head.add(mask);
+  const gog = new THREE.Mesh(new THREE.CapsuleGeometry(0.042, 0.13, 4, 10), mat(0x1a2a4a, {metalness:.5, roughness:.15}));
+  gog.rotation.z = Math.PI/2; gog.scale.z = 0.55; gog.position.set(0, 0.165, 0.128); head.add(gog);
+  const glint = new THREE.Mesh(new THREE.BoxGeometry(0.05,0.012,0.005), new THREE.MeshBasicMaterial({color:0xffffff})); glint.position.set(-0.05,0.185,0.152); head.add(glint);
   const mkArm = sx => {
     const sh = new THREE.Group(); sh.position.set(sx, 0.43, 0); upper.add(sh);
-    const ua = limb(0.056, 0.17, shirt); ua.position.y = -0.13; sh.add(ua);
+    const ua = limb(0.06, 0.17, SUIT); ua.position.y = -0.13; sh.add(ua);
+    const band = new THREE.Mesh(new THREE.CylinderGeometry(0.064,0.064,0.05,12), mat(accent)); band.position.y = -0.08; sh.add(band);
     const el = new THREE.Group(); el.position.y = -0.29; sh.add(el);
-    const fa = limb(0.048, 0.16, skinC); fa.position.y = -0.11; el.add(fa);
-    const hand = new THREE.Mesh(new THREE.SphereGeometry(0.055, 10, 8), mat(skinC)); hand.position.y = -0.26; el.add(hand);
+    const fa = limb(0.055, 0.15, SUIT); fa.position.y = -0.1; el.add(fa);
+    const cuff = new THREE.Mesh(new THREE.CylinderGeometry(0.056,0.05,0.06,12), mat(GLOVE)); cuff.position.y = -0.21; el.add(cuff);
+    const hand = new THREE.Mesh(new THREE.SphereGeometry(0.058, 12, 10), mat(GLOVE, {roughness:.4})); hand.position.y = -0.27; el.add(hand);
     return {sh, el};
   };
   const mkLeg = sx => {
     const hp = new THREE.Group(); hp.position.set(sx, -0.04, 0); hips.add(hp);
-    const th = limb(0.075, 0.24, pants); th.position.y = -0.19; hp.add(th);
+    const th = limb(0.08, 0.24, SUIT); th.position.y = -0.19; hp.add(th);
     const kn = new THREE.Group(); kn.position.y = -0.41; hp.add(kn);
-    const sn = limb(0.066, 0.24, pants); sn.position.y = -0.18; kn.add(sn);
-    const shoe = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.08, 0.24), mat(shoeC)); shoe.position.set(0, -0.42, 0.04); kn.add(shoe);
+    const sn = limb(0.072, 0.16, SUIT); sn.position.y = -0.13; kn.add(sn);
+    const boot = new THREE.Mesh(new THREE.CylinderGeometry(0.075,0.08,0.2,12), mat(0xE6EAF0,{roughness:.8})); boot.position.y = -0.3; kn.add(boot);
+    const shoe = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.07, 0.25), mat(0xE6EAF0)); shoe.position.set(0, -0.4, 0.04); kn.add(shoe);
+    const sole = new THREE.Mesh(new THREE.BoxGeometry(0.135, 0.03, 0.26), mat(SOLE)); sole.position.set(0, -0.445, 0.04); kn.add(sole);
     return {hp, kn};
   };
-  const armR = mkArm(-0.235), armL = mkArm(0.235), legR = mkLeg(-0.095), legL = mkLeg(0.095);
+  const armR = mkArm(-0.245), armL = mkArm(0.245), legR = mkLeg(-0.095), legL = mkLeg(0.095);
   const stool = new THREE.Group();
   const seat = new THREE.Mesh(new THREE.CylinderGeometry(0.2,0.2,0.06,18), mat(0x9AA6B8,{metalness:.5})); seat.position.y = 0.42; stool.add(seat);
   const post = new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.03,0.4,8), mat(0x2D374A)); post.position.y = 0.21; stool.add(post);
   const foot = new THREE.Mesh(new THREE.CylinderGeometry(0.17,0.17,0.03,18), mat(0x2D374A)); foot.position.y = 0.015; stool.add(foot);
   stool.position.z = -0.08; stool.visible = false; g.add(stool);
+  const shield = new THREE.Mesh(new THREE.SphereGeometry(1.05, 24, 16), new THREE.MeshBasicMaterial({color:0x7DD9BE, transparent:true, opacity:.22, depthWrite:false}));
+  shield.position.y = 0.95; shield.visible = false; g.add(shield);
+  const shieldRing = new THREE.Mesh(new THREE.TorusGeometry(0.75, 0.025, 8, 40), new THREE.MeshBasicMaterial({color:0x05B98A}));
+  shieldRing.rotation.x = Math.PI/2; shieldRing.position.y = 0.05; shieldRing.visible = false; g.add(shieldRing);
   const shadow = new THREE.Mesh(new THREE.CircleGeometry(0.42, 24), new THREE.MeshBasicMaterial({color:0x000000, transparent:true, opacity:.18}));
   shadow.rotation.x = -Math.PI/2; shadow.position.y = 0.01; g.add(shadow);
   const tag = new THREE.Sprite(new THREE.SpriteMaterial({depthTest:false})); tag.position.y = 2.2; tag.renderOrder = 10; g.add(tag);
   const bubble = new THREE.Sprite(new THREE.SpriteMaterial({depthTest:false, transparent:true})); bubble.visible = false; bubble.renderOrder = 11; g.add(bubble);
   const icon = new THREE.Sprite(new THREE.SpriteMaterial({depthTest:false, transparent:true})); icon.visible = false; icon.renderOrder = 12; icon.position.y = 2.75; icon.scale.set(0.55,0.55,1); g.add(icon);
-  const av = {g, rig, stool, hips, upper, head, armR, armL, legR, legL, tag, bubble, icon, name:null, color, skinI, hairI, walkPh:0, emote:null};
+  const pow = new THREE.Sprite(new THREE.SpriteMaterial({depthTest:false, transparent:true})); pow.visible = false; pow.renderOrder = 14; pow.scale.set(0.6,0.6,1); g.add(pow);
+  const av = {g, rig, stool, shield, shieldRing, shadow, pow, hips, upper, head, armR, armL, legR, legL, tag, bubble, icon, name:null, color, skinI, hairI, walkPh:0, emote:null, air:0, run:false, punch:null, react:null, inv:false};
   setTag(av, name, color);
   scene.add(g);
   return av;
@@ -877,6 +912,7 @@ function updateHearts(){
     h.s.material.opacity = u > 0.8 ? (1-u)/0.2 : 1;
   }
 }
+function showPow(av){ av.pow.material.map = emojiTexture('💥'); av.pow.material.needsUpdate = true; }
 function startEmote(av, id, elapsed=0){
   const E = EMO[id]; if (!E) return;
   av.emote = {id, start: performance.now() - elapsed, dur: E.dur, lastHeart: 0};
@@ -886,20 +922,21 @@ function stopEmote(av){ av.emote = null; av.icon.visible = false; }
 
 function animateAvatar(av, x, z, ry, moving, t, dt){
   av.g.position.set(x, 0, z); av.g.rotation.y = ry;
+  const air = av.air || 0;
   const A = av.armR, B = av.armL, R = av.legR, L = av.legL;
   for (const j of [A.sh, A.el, B.sh, B.el, R.hp, R.kn, L.hp, L.kn, av.upper, av.head, av.hips]) j.rotation.set(0,0,0);
   av.rig.position.y = 0; av.stool.visible = false;
   av.walkAmt = lerp(av.walkAmt || 0, moving ? 1 : 0, Math.min(1, dt*10));
-  if (moving) av.walkPh += dt*9.5;
-  const w = av.walkAmt, s = Math.sin(av.walkPh);
-  R.hp.rotation.x = s*0.55*w; L.hp.rotation.x = -s*0.55*w;
+  if (moving) av.walkPh += dt*(av.run ? 14 : 9.5);
+  const w = av.walkAmt, s = Math.sin(av.walkPh), amp = av.run ? 1.45 : 1;
+  R.hp.rotation.x = s*0.55*w*amp; L.hp.rotation.x = -s*0.55*w*amp;
   R.kn.rotation.x = Math.max(0, Math.sin(av.walkPh + 1.6))*0.8*w; L.kn.rotation.x = Math.max(0, Math.sin(av.walkPh + 1.6 + Math.PI))*0.8*w;
-  A.sh.rotation.x = -s*0.5*w; B.sh.rotation.x = s*0.5*w;
-  A.el.rotation.x = -0.25 - 0.2*w; B.el.rotation.x = -0.25 - 0.2*w;
+  A.sh.rotation.x = -s*0.5*w*amp; B.sh.rotation.x = s*0.5*w*amp;
+  A.el.rotation.x = -0.25 - 0.2*w - (av.run ? 0.9*w : 0); B.el.rotation.x = -0.25 - 0.2*w - (av.run ? 0.9*w : 0);
   A.sh.rotation.z = -0.06; B.sh.rotation.z = 0.06;
   av.rig.position.y = Math.abs(Math.cos(av.walkPh))*0.035*w;
   const br = Math.sin(t*2 + av.g.id)*0.012;
-  av.upper.rotation.x = br + 0.05*w;
+  av.upper.rotation.x = br + 0.05*w + (av.run ? 0.18*w : 0);
 
   const em = av.emote;
   if (em) {
@@ -949,6 +986,43 @@ function animateAvatar(av, x, z, ry, moving, t, dt){
       }
     }
   }
+  const now = performance.now();
+  if (air > 0.02) {
+    const a = Math.min(1, air/0.35);
+    R.hp.rotation.x = lerp(R.hp.rotation.x, -0.55, a); L.hp.rotation.x = lerp(L.hp.rotation.x, -0.15, a);
+    R.kn.rotation.x = lerp(R.kn.rotation.x, 1.1, a); L.kn.rotation.x = lerp(L.kn.rotation.x, 0.5, a);
+    A.sh.rotation.z = lerp(A.sh.rotation.z, -0.9, a); B.sh.rotation.z = lerp(B.sh.rotation.z, 0.9, a);
+  }
+  if (av.punch) {
+    const e = (now - av.punch.t0)/1000;
+    if (e > 0.34) av.punch = null;
+    else {
+      const f = e < 0.09 ? e/0.09 : Math.max(0, 1 - (e-0.09)/0.25);
+      const P = av.punch.side ? A : B, G = av.punch.side ? B : A, sg = av.punch.side ? 1 : -1;
+      P.sh.rotation.x = lerp(-0.9, -1.6, f); P.sh.rotation.z = sg*0.28; P.el.rotation.x = lerp(-1.5, -0.05, f); P.el.rotation.z = 0;
+      G.sh.rotation.x = -0.9; G.sh.rotation.z = -sg*0.25; G.el.rotation.x = -1.7;
+      av.upper.rotation.y = -sg*0.4*f; av.upper.rotation.x += 0.08*f;
+      R.hp.rotation.x *= 0.5; L.hp.rotation.x *= 0.5;
+    }
+  }
+  if (av.react) {
+    const e = (now - av.react.t0)/1000;
+    if (e > 0.55) av.react = null;
+    else {
+      const inF = Math.min(1, e/0.06), d = (1 - e/0.55) * inF;
+      av.upper.rotation.x -= 0.55*d; av.head.rotation.x -= 0.45*d; av.upper.rotation.z += Math.sin(e*40)*0.08*d;
+      A.sh.rotation.z = lerp(A.sh.rotation.z, -0.9, d); B.sh.rotation.z = lerp(B.sh.rotation.z, 0.9, d);
+      A.el.rotation.x = lerp(A.el.rotation.x, -0.8, d); B.el.rotation.x = lerp(B.el.rotation.x, -0.8, d);
+      R.kn.rotation.x += 0.35*d; L.kn.rotation.x += 0.35*d; av.rig.position.y -= 0.05*d;
+      av.rig.position.x = Math.sin(e*55)*0.04*d;
+    }
+    av.pow.visible = e < 0.3;
+    if (av.pow.visible) { const sc = 0.45 + e*1.2; av.pow.scale.set(sc, sc, 1); av.pow.material.opacity = 1 - e/0.3; av.pow.position.set(0, 1.45, 0.35); }
+  } else { av.pow.visible = false; av.rig.position.x = 0; }
+  av.shield.visible = av.shieldRing.visible = !!av.inv;
+  if (av.inv) { const pu = 1 + Math.sin(t*6)*0.04; av.shield.scale.set(pu,pu,pu); av.shield.material.opacity = 0.18 + Math.sin(t*6)*0.06; av.shieldRing.rotation.z = t*2; }
+  av.rig.position.y += air;
+  av.shadow.scale.setScalar(1 - Math.min(0.5, air*0.4));
   av.icon.position.y = 2.75 + av.rig.position.y;
   av.tag.position.y = 2.2 + av.rig.position.y;
   if (av.bubble.visible) av.bubble.position.y = (av.icon.visible ? 3.1 : 2.62) + av.bubbleH + av.rig.position.y;
@@ -967,6 +1041,7 @@ addEventListener('keydown', e => {
     const n = parseInt(e.key, 10); if (n >= 1 && n <= EMOTES.length) { pickEmote(EMOTES[n-1].id); e.preventDefault(); }
     return;
   }
+  if (e.code === 'Space') { e.preventDefault(); if (!e.repeat) doJump(); return; }
   keys[kk] = true;
   if (e.key === 'Enter') { unlockPointer(); $('#chatIn').focus(); e.preventDefault(); }
   if (e.key.toLowerCase() === 'e' && nearStation >= 0) openStation(nearStation);
@@ -1013,7 +1088,7 @@ function edgeTurn(dt){
   else if (hover.x > w - edge) camYaw -= dt * 2.2 * (1 - (w-hover.x)/edge);
 }
 cvs.addEventListener('pointerdown', e => {
-  if (e.pointerType === 'mouse') { if (!isLocked() && started) lockPointer(); return; }
+  if (e.pointerType === 'mouse') { if (e.button === 0 && started) { doPunch(); lockPointer(); } return; }
   ptrs.set(e.pointerId, {x:e.clientX, y:e.clientY});
   try { cvs.setPointerCapture(e.pointerId); } catch(_) {}
   if (ptrs.size === 1) tapInfo = {x:e.clientX, y:e.clientY, t:performance.now(), moved:false};
@@ -1095,6 +1170,61 @@ function pickEmote(id){
 }
 $('#emoBtn').onclick = () => toggleEmotes();
 $('#chatIn').addEventListener('focus', unlockPointer);
+
+/* ---------------- run · jump · punch ---------------- */
+const combat = {lastPunch:0, side:0, stunUntil:0, invUntil:0, combo:0, lastHitAt:0, jid:0, shake:0, lastFrom:{}};
+player.y = 0; player.vy = 0; player.running = false;
+function isInv(){ return performance.now() < combat.invUntil; }
+function isStunned(){ return performance.now() < combat.stunUntil; }
+function uiBlocked(){ return !started || $('#proc').classList.contains('on') || $('#intro').classList.contains('on') || emoOpen; }
+function doJump(){
+  if (uiBlocked() || isStunned() || player.y > 0.001) return;
+  player.vy = 5.4; combat.jid = (combat.jid + 1) % 1000;
+  if (myAv && myAv.emote) { stopEmote(myAv); me.em = ''; }
+  sendState(true);
+}
+function doPunch(){
+  const now = performance.now();
+  if (uiBlocked() || isStunned() || now - combat.lastPunch < 330) return;
+  combat.lastPunch = now; combat.side ^= 1;
+  ensureMyAvatar();
+  if (myAv.emote) { stopEmote(myAv); me.em = ''; }
+  let target = null, tid = null, best = 1.45;
+  for (const [k,p] of peers) { const d = Math.hypot(p.x - player.x, p.z - player.z); if (d < best) { best = d; target = p; tid = k; } }
+  if (target) player.ry = Math.atan2(target.x - player.x, target.z - player.z);
+  else if (!isTouch) player.ry = camYaw + Math.PI;
+  myAv.punch = {t0: now, side: combat.side};
+  sendEvent({k:'punch', side: combat.side, r: +player.ry.toFixed(2)});
+  if (target) {
+    sendEvent({k:'hit', to: tid});
+    setTimeout(() => { if (!target.d.inv) { target.av.react = {t0: performance.now()}; showPow(target.av); } }, 90);
+  }
+}
+function onHitMe(d){
+  const now = performance.now();
+  if (isInv()) return;
+  if (now - (combat.lastFrom[d.cid] || 0) < 200) return;
+  combat.lastFrom[d.cid] = now;
+  ensureMyAvatar();
+  myAv.react = {t0: now}; showPow(myAv);
+  if (myAv.emote) { stopEmote(myAv); me.em = ''; }
+  combat.stunUntil = now + 380; combat.shake = 0.3; player.target = null;
+  if (now - combat.lastHitAt > 2500) combat.combo = 0;
+  combat.combo++; combat.lastHitAt = now;
+  if (combat.combo >= 20) {
+    combat.combo = 0; combat.invUntil = now + 5000; combat.stunUntil = now;
+    toast('20대 연속으로 맞아서 5초간 무적', '#05B98A');
+  }
+  sendState(true);
+}
+function updateCombatHud(){
+  const el = $('#combo'), now = performance.now();
+  if (isInv()) { el.style.display = 'block'; el.className = 'inv'; el.textContent = `무적 ${((combat.invUntil - now)/1000).toFixed(1)}초`; }
+  else if (combat.combo > 0 && now - combat.lastHitAt < 2500) { el.style.display = 'block'; el.className = ''; el.textContent = `연속 피격 ${combat.combo} / 20`; }
+  else el.style.display = 'none';
+}
+$('#punchBtn').addEventListener('pointerdown', e => { e.preventDefault(); doPunch(); });
+$('#jumpBtn').addEventListener('pointerdown', e => { e.preventDefault(); doJump(); });
 const FSC = Math.min(innerWidth, innerHeight) < 600 ? 1.6 : 1;
 const F = (w, s, fam='Arial') => `${w} ${Math.round(s*FSC)}px ${fam}`;
 /* ================= Process mini-games ================= */
@@ -1713,6 +1843,7 @@ function tick(){
     if (keys['a']||keys['arrowleft']) ix -= 1;
     if (keys['d']||keys['arrowright']) ix += 1;
     if (joy.active) { ix += joy.x; iz += joy.y; }
+    if (isStunned()) { ix = 0; iz = 0; player.target = null; }
     let mx = 0, mz = 0;
     if (ix || iz) {
       player.target = null;
@@ -1727,7 +1858,8 @@ function tick(){
     const moving = ml > 0.01;
     if (moving) {
       mx/=ml; mz/=ml;
-      const sp = 6.2 * Math.max(spMul, 0.35);
+      player.running = !!(keys['shift'] || (joy.active && Math.hypot(joy.x, joy.y) > 0.92));
+      const sp = 6.2 * Math.max(spMul, 0.35) * (player.running ? 1.75 : 1);
       const [nx,nz] = collide(player.x + mx*sp*dt, player.z + mz*sp*dt);
       if (player.target && Math.hypot(nx-player.x, nz-player.z) < sp*dt*0.2) player.target = null;
       player.x = nx; player.z = nz;
@@ -1736,7 +1868,11 @@ function tick(){
       player.ry += diff * Math.min(1, dt*12);
     }
     if (moving && myAv.emote && !EMO[myAv.emote.id].keepMoving) { stopEmote(myAv); me.em = ''; sendState(true); }
+    if (!moving) player.running = false;
+    if (player.y > 0 || player.vy > 0) { player.vy -= 14*dt; player.y += player.vy*dt; if (player.y <= 0) { player.y = 0; player.vy = 0; } }
+    myAv.air = player.y; myAv.run = player.running; myAv.inv = isInv();
     animateAvatar(myAv, player.x, player.z, player.ry, moving, t, dt);
+    updateCombatHud();
 
     nearStation = -1; let best = 2.4;
     stationObjs.forEach(s => { const d = Math.hypot(s.px-player.x, s.pz-player.z); if (d < best) { best = d; nearStation = s.i; } });
@@ -1754,6 +1890,7 @@ function tick(){
     const ox = p.x, oz = p.z;
     p.x = lerp(p.x, p.tx ?? p.x, k); p.z = lerp(p.z, p.tz ?? p.z, k);
     let diff = (p.tr ?? p.r) - p.r; diff = Math.atan2(Math.sin(diff), Math.cos(diff)); p.r += diff*k;
+    if (p.av.jumpT0) { const je = (performance.now() - p.av.jumpT0)/1000; p.av.air = Math.max(0, 5.4*je - 7*je*je); if (je > 0.8) { p.av.jumpT0 = 0; p.av.air = 0; } }
     animateAvatar(p.av, p.x, p.z, p.r, Math.hypot(p.x-ox, p.z-oz) > 0.004, t, dt);
   }
 
@@ -1761,8 +1898,9 @@ function tick(){
   const cx = player.x + Math.sin(camYaw)*Math.cos(camPitch)*camDist;
   const cz = player.z + Math.cos(camYaw)*Math.cos(camPitch)*camDist;
   const cy = 1.4 + Math.sin(camPitch)*camDist;
-  camera.position.lerp(new THREE.Vector3(clamp(cx,-RW+0.5,RW-0.5), Math.min(cy, 5.0), clamp(cz,-RD+0.5,RD-0.5)), 0.18);
-  camera.lookAt(player.x, 1.3, player.z);
+  camera.position.lerp(new THREE.Vector3(clamp(cx,-RW+0.5,RW-0.5), Math.min(cy + player.y*0.5, 5.0), clamp(cz,-RD+0.5,RD-0.5)), 0.18);
+  if (combat.shake > 0) { combat.shake = Math.max(0, combat.shake - dt); const k = combat.shake*0.5; camera.position.x += (Math.random()-.5)*k; camera.position.y += (Math.random()-.5)*k; }
+  camera.lookAt(player.x, 1.3 + player.y*0.6, player.z);
   renderer.render(scene, camera);
   requestAnimationFrame(tick);
 }
